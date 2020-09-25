@@ -111,3 +111,70 @@ C++11允许在子类中使用`using Base::func;`使用父类的函数，包括�
 
 同样，如果想要在父类想要禁止派生类中覆盖某个方法，可以在参数列表后面加上`final`关键字表示禁止重载。（越来越Java化了）
 
+### Lambda 函數
+
+#### 比較函數指針、函数符和Lambda函数
+
+C++11引入了Lambda匿名函数，语法格式为
+
+```c++
+[](type x) {return expression;}
+```
+
+这是只有一条返回语句的形式。当函数体不止这一条语句时，需要指定返回类型，使用后置返回类型的形式：
+
+```c++
+[](type x)->type{body;return expression;}
+```
+
+### 包装器
+
+通过标准库中的`function`对象可以将可调用对象包装，返回一个统一的对象。
+
+语法格式为
+
+```c++
+std::function<func(type x,type y)> func_instance;
+```
+
+随后便可以像函数一样调用。
+
+### 可变参数模板
+
+可变参数模板（variadic tempalte）使得你可创建可接受可变数量的参数的模板函数和模板类。
+
+语法格式为：
+
+```c++
+template<typename... Args>
+void func(Args... args) {
+    
+}
+```
+
+`Args`允许接受大于等于零数量的任意类型的参数。
+
+问题是我们不能通过索引直接将参数直接取出来。正确的方法是使用递归（真不懂为什么设计成这样），比如下面这种方法：
+
+```c++
+//零参数的同名函数用于终止递归
+void func() {
+    //do something
+}
+
+//被调用的函数
+template<typename T, typename... Args>
+void func(T t, Args... args) {
+    //do something，t可以表示在当前递归里args的第一个参数
+    func(args); //在这里递归调用
+}
+
+//如果想要在只剩下一项参数时，还可以定义这样一个函数
+template<typename T>
+void func(T t) {
+    //do something
+}
+```
+
+
+
