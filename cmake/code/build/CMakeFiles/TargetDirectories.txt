@@ -1,0 +1,4 @@
+/home/lunar/cpp/cmake/code/build/CMakeFiles/rebuild_cache.dir
+/home/lunar/cpp/cmake/code/build/CMakeFiles/edit_cache.dir
+/home/lunar/cpp/cmake/code/build/CMakeFiles/hello_lib.dir
+/home/lunar/cpp/cmake/code/build/CMakeFiles/cmake.dir

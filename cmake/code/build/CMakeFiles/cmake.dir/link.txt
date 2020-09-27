@@ -1,0 +1,1 @@
+/bin/c++ -rdynamic CMakeFiles/cmake.dir/main.o -o cmake  libhello_lib.a 
