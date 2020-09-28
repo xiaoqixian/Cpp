@@ -3,9 +3,9 @@ author: lunar
 date: Fri 25 Sep 2020 07:35:26 PM CST
 ---
 
-## CMake 教程
+### CMake 教程(基础篇)
 
-### CMake 教程
+>   本系列笔记均来自与github仓库: https://github.com/ttroy50/cmake-examples
 
 #### CMake的使用流程
 
@@ -98,6 +98,14 @@ add_library(hello_lib STATIC
 
 这个函数将会创建一个名为`libhello_lib.a`的静态库。
 
+#### 添加动态库
+
+动态库，也被称为共享库(shared library). 动态库与静态库最大的区别在于静态库在编译期间就进行链接，而动态库在运行期间进行链接，并且可以被多个文件所共享。
+
+从空间上来看，动态库更省空间；从运行时间来看，静态库更快。
+
+添加动态库的函数与添加静态库一样，只要将`STATIC`改为`SHARED`。
+
 #### 为库添加路径
 
 也可以直接在创建库时添加一个路径下的所有文件进去：
@@ -138,11 +146,62 @@ target_link_libraries(target
 
 相当于编译器参数中的`-rdynamic`
 
-学习到这一阶段，可以给出一个小的demo了。
+#### 安装target
 
-某工程的目录树如下：
+CMake允许用户通过`install`函数创建一个用户可以通过`make install`命令运行来安装的target。
 
+示例：
 
+```cmake
+install(TARGETS install_binary
+	DESTINATION bin
+)
+```
 
+这个地址bin是一个根目录下的子目录，而这个根目录由运行cmake命令时由参数`-DCMAKE_INSTALL_PREFIX`进行指定。
 
+比如：`cmake .. -DCMAKE_INSTALL_PREFIX=/install/location`
+
+则会安装在/install/location/bin目录下。
+
+**安装库**
+
+动态库也可以根据该命令进行安装
+
+```cmake
+install(TARGETS install_library
+	LIBRARY DESTINATION lib
+)
+```
+
+如果没有设置`-DCMAKE_INSTALL_PREFIX`，默认的安装路径为/usr/local
+
+#### Build Type
+
+cmake有一系列内置变量Build Type（我也不知道这个翻译对不对）来控制编译的level。这个和用命令行编译时用的一些参数是对应的，对应结果如下：
+
+-   Release: 如果是要发布的包，相当于`-o3 -DNDEBUG`参数；
+-   Debug: 如果是用于debug，`-g`；
+-   MinSizeRel: 使得编译出来的包最小，`-Os -DNDEBUG`；
+-   RelWithDebInfo: 发布带有debug信息的包，`-O2 -g -DNDEBUG`
+
+这个`-DNDEBUG`参数，根据我的项目经验，如果使用了则会被检测到定义了一个名为`NO_DEBUG`的宏。所以在源代码中想要打印debug信息的话，就可以检测这个宏。如果没有定义这个宏，就打印一些东西；否则就什么都不做。
+
+这些Build Type在运行cmake时可以这样设置：
+
+`cmake .. -DCMAKE_BUILD_TYPE=Release`
+
+**设置默认Build Type**
+
+cmake原本的默认Build Type是不带任何编译器参数用于优化，你可以在CMakeLists.txt中设置默认：
+
+```cmake
+if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+	message("Setting build type to 'RelWithDebInfo' as none was specified")
+	set(CMAKE_BUILD_TYPE RelWithDebInfo CACHE STRING "Choose the type of build." FORCE)
+  # Set the possible values of build type for cmake-gui
+  	set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release"
+    "MinSizeRel" "RelWithDebInfo")
+endif()
+```
 
