@@ -205,3 +205,47 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
 endif()
 ```
 
+#### 设置编译参数flags
+
+有两种方法用于设置flags：
+
+-   通过`target_compile_definition()`函数；
+-   使用内置变量`CMAKE_C_FLAGS`(C语言)和`CMAKE_CXX_FLAGS`(C++)；
+
+在现代CMake中设置C ++标志的推荐方法是使用按目标标志，可以通过`target_compile_definitions()`函数将其填充到其他目标。`target_compile_definitions()`函数用于给一个target定义一个宏，其语法格式为
+
+```cmake
+target_compile_definitions(<target>
+  <INTERFACE|PUBLIC|PRIVATE> [items1...]
+  [<INTERFACE|PUBLIC|PRIVATE> [items2...] ...])
+```
+
+如果在item前面加上`-D`字样，该宏将会被移除。
+
+三个限定符则用于指定作用域。
+
+**设置默认的C++编译参数**
+
+可以以如下的格式设置参数
+
+```cmake
+set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DEX2" CACHE STRING "Set C++ Compiler Flags" FORCE)
+```
+
+#### 导入第三方库
+
+CMake通过`find_package()`函数来寻找第三方库，这个函数会在`CMAKE_MODULE_PATH`下寻找格式为"FindXXX.cmake"的模块。在linux下，`CMAKE_MODULE_PATH`的默认地址为`/usr/local/cmake/Modules`
+
+函数示例：
+
+`find_package(Boost 1.46.1 REQUIRED COMPONENTS filesystem system)`
+
+参数说明：
+
+-   Boost: 库名
+-   1.46.1：最小版本
+-   REQUIRED: 如果找不到这个库则build失败
+-   COMPONENTS：The list of libraries to find
+
+大多数成功导入的库会设置一个名为`XXX_FOUND`的变量（库名+FOUND），可以通过判断这个变量是否为true来判断库是否导入成功。
+
