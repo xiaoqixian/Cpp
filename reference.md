@@ -143,3 +143,78 @@ inline auto func_wrapper(Function&& f, Args&&... args) -> decltype(f(std::forwar
 
 需要应用到可变数量的模板参数的知识。
 
+#### emplace_back 减少内存拷贝和移动
+
+我们知道，在C++11之前，往vector容器的底部添加一个元素可以使用push_back函数。现在我们多了一个选择：emplace_back
+
+这两者的区别是什么呢？
+
+首先我们要搞懂push_back向vector添加元素的原理：
+
+对于下面这段代码：
+
+```c++
+/**********************************************
+  > File Name		: test14.cpp
+  > Author			: lunar
+  > Email			: lunar_ubuntu@qq.com
+  > Created Time	: Thu 01 Oct 2020 09:22:03 AM CST
+ **********************************************/
+
+#include <iostream>
+using namespace std;
+#include <vector>
+
+class Test {
+public:
+    Test(int num):num(num) {
+        cout << "call constructor" << endl;
+    }
+
+    Test(const Test& a):num(a.num) {
+        cout << "call copy constructor" << endl;
+    }
+
+    Test(Test&& a):num(a.num) {
+        cout << "call move constructor" << endl;
+    }
+private:
+    int num;
+};
+
+int main() {
+    vector<Test> v;
+    cout << "push_back" << endl;
+    cout << "rvalue reference" << endl;
+    v.push_back(10);
+    cout << "lvalue reference" << endl;
+    Test t(1);
+    v.push_back(t);
+}
+```
+
+如图，自己定义了class Test的拷贝构造函数和移动构造函数。再来看运行结果：
+
+```c++
+push_back
+rvalue reference
+call constructor //根据右值10构造一个右值Test对象
+call move constructor //通过移动构造函数直接将对象传入vector
+lvalue reference
+call constructor 
+call copy constructor //在将对象t作为参数传入时需要调用一次拷贝构造函数
+call copy constructor //在push_back将t加入到vector时需要调用一次拷贝构造函数
+```
+
+根据运行结果易知，如果是传入右值还好，传入一个左值的代价是很大的。
+
+除了选择将一个左值通过`std::move`函数转为右值传入外。c++11提供了一个新的函数:emplace_back。
+
+emplace_back函数最大的特点在于其可以根据传入的对应对象的构造函数的参数自动创建一个对象放在vector尾部。比上面代码的右值传入还少了一个调用移动构造函数的过程。
+
+但如果是传入一个左值的话，好像就和push_back没有什么区别了。
+
+所有的标准库容器（array除外，因为它的长度不可改变，无法插入元素）基本都配备了类似的方法：emplace, emplace_hint, emplace_front, emplace_after, emplace_back。
+
+我们应该尽量使用emplace来提高性能。当然这是C++11之后才出现的方法，如果要兼容以前的代码的话就没法使用了。以及，emplace是直接调用构造函数来构造对象，所以需要确保相应类或结构体有定义相应构造函数，否则会报错。
+
