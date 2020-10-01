@@ -49,6 +49,68 @@ vocation = ps;
 
 **注意：**使用 new 分配内存时，才能使用`auto_ptr`(当然这个最好也不要用)和`shared_ptr`，使用 new[] 分配内存时，要使用`unique_ptr`。
 
+#### weak_ptr
+
+weak_ptr实际上并不是一种智能指针，其常用于搭配shared_ptr一起使用。weak_ptr绑定的对象并不是一个指针，而是一个shared_ptr。将weak_ptr绑定一个shared_ptr并不会增加shared_ptr的计数，并且即使有wrak_ptr指向，这块内存也可以被销毁，这种绑定关系称为弱共享。相应的，也无法通过weak_ptr访问到这块内存。
+
+那么weak_ptr有什么用呢？
+
+weak_ptr更多的是作为shared_ptr的一个观察者的身份存在。
+
+**weak_ptr的实例化**
+
+weak_ptr接收一个shared_ptr作为参数进行实例化。
+
+**weak_ptr判定一个对象是否被释放**
+
+weak_ptr的成员函数lock可以用于判定对象是否存在，如果存在，返回一个指向共享对象的shared_ptr，否则返回一个空的shared_ptr。
+
+**weak_ptr会延长shared_ptr计数器生命周期**
+
+注意哦，这里说的是shared_ptr计数器的生命周期。相应对象的生命周期还是在计数器归零的时候就完结了。这里的目的是为了保证weak_ptr向计数器索取绑定数目时不会指向一个被释放的内存而导致错误。
+
+所以，只要还有指向该shared_ptr的weak_ptr存在，相应的shared_ptr就不会被释放。
+
+#### shared_ptr 内存分配探秘
+
+前面讲到shared_ptr通过计数器来判定内存引用数。但这个计数器并不是定义在shared_ptr内部的（废话，要不然怎么能被这么多shared_ptr共享）。这个计数器其实是定义在堆上的。
+
+当一块内存第一次被shared_ptr绑定时，编译器会在堆上创建一个计数器，这个计数器可以被所有的shared_ptr所共享。
+
+这就产生了一个问题，对于下面这段代码：
+
+```c++
+auto* ptr = new Object();
+shared_ptr<Objet> sp{ptr};
+```
+
+这段代码其实涉及到两次内存分配，一次分配Object，另一次分配shared_ptr。这其实是不够高效的。所以我们万能的C++11准备了std::make_shared函数，这个函数使得这两个过程合二为一，这个函数可以将两者的内存视作一个整体进行管理。
+
+make_shared函数的语法格式为
+
+```c++
+template <class T, class... Args>
+  shared_ptr<T> make_shared (Args&&... args);
+```
+
+所以上面的代码可以修改为
+
+```c++
+shared_ptr<Object> sp = make_shared();
+```
+
+使用make_shared有很多好处，首先就是减少了内存分配的次数，提高了效率。其次是两个内存放在一起减少了内存查找的次数（Cache查找的原理）。最后就是使得指针被创建之后立刻被智能指针绑定了，有效地减少了内存泄漏的可能。很多时候的内存泄漏都是因为指针被创建出来后还没来得及被智能指针绑定就抛出了异常，导致指针没人回收。
+
+**shared_ptr坏处**
+
+>   内容来源于知乎文章《如何优雅地构造shared_ptr》
+
+凡事有好有坏，make_shared最大的一个坏处就是由于其对象内存和shared_ptr计数器内存都被绑定在一起。导致释放时也只能一起释放，而我们从上文知道：shared_ptr的计数器在被weak_ptr绑定的情况下并不随其指向对象一起被销毁。这就导致了下面这种情况：
+
+当有很多weak_ptr指向shared_ptr时，计数器必须等待最后一个weak_ptr被释放自己才能释放。而计数器与对象的内存是共同管理的，所以对象的内存也无法得到释放。如果存在weak_ptr一直没有释放的话，简直相当于内存泄漏了。
+
+所以make_shared函数不能乱用。当你需要绑定的对象比较大，并且可能有很多weak_ptr需要绑定的时候，还是不要使用这个函数了。
+
 #### 各种智能指针类型的使用场景
 
 > 下面各种观点是从各种博客和知乎回答搜集而来
