@@ -23,6 +23,8 @@
 
 [实现](effective_cpp/implementations.md)
 
+[继承与面向对象设计](inheritance_and_object_oriented_design.md)
+
 #### 《More Effective C++》
 
 #### 《Exceptional C++》
