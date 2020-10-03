@@ -1,0 +1,32 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/lunar/cpp/mempool/debug.h
+string.h
+-
+stdlib.h
+-
+errno.h
+-
+stdio.h
+-
+
+/home/lunar/cpp/mempool/mempool.cpp
+mutex
+-
+stdlib.h
+-
+memory.h
+-
+debug.h
+/home/lunar/cpp/mempool/debug.h
+mempool.h
+/home/lunar/cpp/mempool/mempool.h
+
+/home/lunar/cpp/mempool/mempool.h
+
