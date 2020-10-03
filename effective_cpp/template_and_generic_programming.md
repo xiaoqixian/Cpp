@@ -428,3 +428,84 @@ if (std::is_base_of<A,B>::value)
 if (std::is_convertible<A*,B*>::value)
 ```
 
+#### 条款48: Be aware of template metaprogramming.
+
+Template metaprogramming(模板元编程)是编写template-based C++ program 并执行于compile-time的过程。
+
+这样的结果是：较小的可执行文件、较短的运行期、较少的内存需求。并且一部分错误也可以在编译期就检查出来。
+
+我们称那些在编译期就已经确定了的变量为编译期常量。有些编译器可以根据编译期常量进行优化，比如一个if语句，如果为true还是false在编译期就可以算出来，那么编译器就可以优化掉不会被选的那条路。这样就不用在运行期去判断一遍。当然，在编译期就可以得出结果的if语句还是比较少的。
+
+常见的编译期常量包括：
+
+-   数组的size。要想静态分配一个数组，那么数组的大小在编译期就必须知道。
+
+    `int arr[size] = {};`中的size肯定是编译期常量。
+
+-   模板中的编译期常量。
+
+    模板参数除了是类型参数，还包括非类型参数。因此可以用来验证某个变量的类型。
+
+    ```c++
+    template<int i>
+    struct S {};
+    
+    S<num> s;
+    ```
+
+    上面的代码便可以在编译期就验证num的类型是否为int
+
+-   Case labels
+
+    switch语句的每个case对应的变量也是在编译期就必须知道的。
+
+**利用模板进行编译期运算**
+
+考虑下面的例子
+
+```c++
+template<unsigned N>
+struct Fibonacci;
+
+template<>
+struct Fibonacci<0> {
+    static unsigned const value=0;
+}
+
+template<>
+struct Fibonacci<1> {
+    staitc unsigned const value = 1;
+}
+
+template<unsigned N>
+strucxt Fibnoncci {
+    static unsigned const value = Fibonacci<N-1>::value + Fibonacci<N-2>::value;
+}
+```
+
+这就是模板元编程的雏形，这种编程方式被证实是图铃完备的。但编译器往玩会在递归的时候设置一个最大深度来避免无穷次的编译期递归。
+
+**constexpr关键字**
+
+`constexpr`的出现使得函数既能在编译期运行，又能在运行期运行。
+
+对于constexpr修饰的函数，如果传进去的是编译期常量，就可以得到一个编译期常量。
+
+比如，对于上面的代码就可以修改为
+
+```c++
+constexpr unsigned fibnoncci(unsigned i) {
+    return (i <= 1u) ? i : fiboncci(i-1) + fiboncci(i-2);
+}
+```
+
+constexpr修饰函数的限制：
+
+在C++11中有着非常严格的限制，在C++14中放宽了许多。最严格的包括：
+
+-   不能有try catch块
+-   不能有static变量
+-   不能有局部线程变量
+
+
+
