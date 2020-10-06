@@ -11,18 +11,26 @@
 struct mem_node {
     char* _start;
     size_t _size;
-    struct mem_node* next;
-    struct mem_node* pre;
     mem_node(char* start, size_t size):_start(start),_size(size) {
-        next = NULL;
-        pre = NULL;
-    }
-    mem_node(char* start, size_t size, mem_node* next, mem_node* pre):
-        _start(start),
-        _size(size),
-        next(next),
-        pre(pre) {
 
+    }
+    int operator -(const mem_node& rhs) {
+        return static_cast<int>(_size - rhs._size);
+    }
+    bool operator <(const mem_node& rhs) {
+        return _size < rhs._size;
+    }
+    bool operator >(const mem_node& rhs) {
+        return _size > rhs._size;
+    }
+    bool operator <=(const mem_node& rhs) {
+        return _size <= rhs._size;
+    }
+    bool operator >=(const mem_node& rhs) {
+        return _size >= rhs._size;
+    }
+    bool operator ==(const mem_node& rhs) {
+        return _size == rhs._size;
     }
 };
 
@@ -36,7 +44,8 @@ private:
     char* _top;
     char* _end;
     static size_t MAX_CAP;
-    struct mem_node* header;
+    //struct mem_node* header;
+    AVLTree<mem_node> tree;
     static MemoryPool* instance;
 
     MemoryPool(size_t size);

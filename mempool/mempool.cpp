@@ -10,6 +10,7 @@
 #include <memory.h>
 #include "debug.h"
 #include "mempool.h"
+#include "AVLTree.h"
 
 MemoryPool* MemoryPool::instance = NULL;
 size_t MemoryPool::MAX_CAP = 30; //default max capacity = 2Mb
@@ -22,7 +23,7 @@ MemoryPool::MemoryPool(size_t size) {
     }
     _top = _start;
     _end = _start + size;
-    header = new mem_node(0, -1);
+    tree = AVLTree<mem_node>();
 }
 
 MemoryPool::~MemoryPool() {
@@ -30,14 +31,7 @@ MemoryPool::~MemoryPool() {
     _start = NULL;
     _top = NULL;
     _end = NULL;
-
-    //linked list resource collect
-    mem_node* temp;
-    while (header != NULL) {
-        temp = header->next;
-        delete header;
-        header = temp;
-    }
+    
 }
 
 MemoryPool* MemoryPool::get_instance() {
@@ -68,6 +62,7 @@ void* MemoryPool::allocate(size_t size) {
 /*
  * Get a memory fragmentation in the linked list.
  */
+/*
 void* MemoryPool::find_in_list(size_t size) {
     mem_node* temp = header->next;
     if (temp == NULL || size > temp->_size) {
@@ -125,6 +120,13 @@ void* MemoryPool::find_in_list(size_t size) {
     }
     DEBUG("allocate failed");
     return NULL;
+}*/
+
+/*
+ * find in AVL tree
+ */
+void* find_in_tree(size_t size) {
+    
 }
 
 /*
