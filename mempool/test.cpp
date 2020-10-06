@@ -20,6 +20,14 @@ public:
         data = x;
     }
 
+    TestObject() {
+        if (this == NULL) {
+            DEBUG("no memory for assignement");
+            return ;
+        }
+        data = 0;
+    }
+
     void* operator new(size_t size);
     void operator delete(void* p);
     void* operator new[](size_t size);
@@ -29,20 +37,31 @@ private:
 };
 
 void* TestObject::operator new(size_t size) {
-    return MemoryPool::get_instance()->allocate(size);
+    void* p = MemoryPool::get_instance()->allocate(size);
+    // TODO: ask for more memory from operating system when there is no enough memory in the pool.
+    // currently it just throws bad_alloc() error.
+    if (p) {
+        return p;
+    } else {
+        throw bad_alloc();
+    }
 }
 
 void* TestObject::operator new[](size_t size) {
-    // continous memory allocate is not supported for now.
-    return NULL;
+    void* p = MemoryPool::get_instance()->allocate(size);
+    if (p) {
+        return p;
+    } else {
+        throw bad_alloc();
+    }
 }
 
 void TestObject::operator delete(void* p) {
-    MemoryPool::get_instance()->collect(p, (size_t)sizeof(TestObject));
+    MemoryPool::get_instance()->collect(p, sizeof(TestObject));
 }
 
 void TestObject::operator delete[](void* p) {
-
+    //delete[] currently not supported.
 }
 
 int main(int argc, char** argv) {
@@ -55,7 +74,9 @@ int main(int argc, char** argv) {
     TestObject* to6 = new TestObject(12);
     TestObject* to7 = new TestObject(12);
     delete to;
+    DEBUG("to deleted");
     delete to1;
+    DEBUG("to1 deleted");
     TestObject* to8 = new TestObject(12);
     return 0;
 }

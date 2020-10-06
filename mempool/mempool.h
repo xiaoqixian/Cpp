@@ -43,6 +43,7 @@ private:
     ~MemoryPool();
     void* find_in_list(size_t size);
     mem_node* merge_chunk(const mem_node* c1, const mem_node* c2);
+    void collect_node(mem_node* new_node);
 };
 
 #endif

@@ -55,7 +55,7 @@ MemoryPool* MemoryPool::get_instance() {
  * Else, return NULL
  */
 void* MemoryPool::allocate(size_t size) {
-    if (_end - _top > size) {
+    if (static_cast<size_t>(_end - _top) > size) {
         void* res = (void*)_top;
         _top += size;
         DEBUG("allocate from memory pool: %zd", size);
@@ -76,15 +76,47 @@ void* MemoryPool::find_in_list(size_t size) {
     }
     while (temp != NULL) {
         if (temp->next == NULL) {
-            temp->pre->next = NULL;
-            DEBUG("allocate from linked list: %zd", size);
-            return (void*)(temp->_start);
+            if (temp->_size == size) {
+                temp->pre->next = NULL;
+                void* res = (void*)(temp->_start);
+                DEBUG("allocate from linked list: %zd", size);
+                delete temp;
+                memset(res, 0, size);
+                return res;
+            } else {
+                mem_node* cut_node = new mem_node(temp->_start + size, temp->_size - size);
+                temp->pre->next = cut_node;
+                void* res = (void*)(temp->_start);
+                DEBUG("allocate from linked list: %zd", size);
+                delete temp;
+                memset(res, 0, size);
+                return res;
+            }
         } else {
             if (size > temp->next->_size) {
-                temp->pre->next = temp->next;
-                temp->next->pre = temp->pre;
-                DEBUG("allocate from linked list: %zd", size);
-                return (void*)(temp->_start);
+                if (size == temp->_size) {
+                    temp->pre->next = temp->next;
+                    temp->next->pre = temp->pre;
+                    DEBUG("allocate from linked list: %zd", size);
+                    void* res = (void*)(temp->_start);
+                    delete temp;
+                    memset(res, 0, size);
+                    return res;
+                } else {
+                    //mem_node* cut_node = new mem_node(temp->_start + size, temp->_size - size);
+                    temp->pre->next = temp->next;
+                    temp->next->pre = temp->pre;
+                    DEBUG("allocate from linked list: %zd", size);
+                    void* res = (void*)(temp->_start);
+                    memset(res, 0, size);
+                    temp->_start += size;
+                    temp->_size -= size;
+                    
+                    // TODO:this step can be made asynchronous.
+                    collect_node(temp);
+                    
+                    return res;
+                }
             } else {
                 temp = temp->next;
                 continue;
@@ -101,6 +133,13 @@ void* MemoryPool::find_in_list(size_t size) {
 void MemoryPool::collect(void* mem, size_t size) {
     DEBUG("collecting memory chunk");
     mem_node* new_node = new mem_node((char*)mem, size);
+    collect_node(new_node);    
+}
+
+/*
+ * insert a memory node into the linked list.
+ */
+void MemoryPool::collect_node(mem_node* new_node) {
     mem_node* temp = header->next;
     if (temp == NULL) {
         header->next = new_node;
@@ -111,11 +150,10 @@ void MemoryPool::collect(void* mem, size_t size) {
         mem_node* merged_node = merge_chunk(new_node, temp);
         if (merged_node != NULL) {
             DEBUG("merge two memory chunks");
-            temp->pre = temp->next;
+            temp->pre->next = temp->next;
             delete new_node;
             delete temp;
-            collect((void*)merged_node->_start, merged_node->_size);
-            delete merged_node;
+            collect_node(merged_node);
             return ;
         }
         new_node->next = temp;
@@ -128,11 +166,10 @@ void MemoryPool::collect(void* mem, size_t size) {
         mem_node* merged_node = merge_chunk(new_node, temp);
         if (merged_node != NULL) {
             DEBUG("merge two memory chunks");
-            temp->pre = temp->next;
+            temp->pre->next = temp->next;
             delete new_node;
             delete temp;
-            collect(merged_node->_start, merged_node->_size);
-            delete merged_node;
+            collect_node(merged_node);
             return ;
         }
 
