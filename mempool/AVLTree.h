@@ -131,7 +131,7 @@ TreeNode<T>* AVLTree<T>::_insert(TreeNode<T>* node, T val) {
             node->right = rotate_right(node->right);
         }
         node = rotate_left(node);
-    }
+    } 
     update_node_height(node);
     return node;
 }
@@ -184,4 +184,5 @@ TreeNode<T>* AVLTree<T>::_remove(TreeNode<T>* node, T val) {
     update_node_height(node);
     return node;
 }
+
 #endif

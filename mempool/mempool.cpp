@@ -8,12 +8,17 @@
 #include <mutex>
 #include <stdlib.h>
 #include <memory.h>
+#include <future>
 #include "debug.h"
 #include "mempool.h"
 #include "AVLTree.h"
 
 MemoryPool* MemoryPool::instance = NULL;
 size_t MemoryPool::MAX_CAP = 30; //default max capacity = 2Mb
+
+void wrapper(MemoryPool* instance, mem_node* new_node) {
+    instance->collect_node(new_node);
+}
 
 MemoryPool::MemoryPool(size_t size) {
     _start = (char*)malloc(size);
@@ -23,7 +28,7 @@ MemoryPool::MemoryPool(size_t size) {
     }
     _top = _start;
     _end = _start + size;
-    tree = AVLTree<mem_node>();
+    header = new mem_node(NULL, -1);
 }
 
 MemoryPool::~MemoryPool() {
@@ -31,7 +36,11 @@ MemoryPool::~MemoryPool() {
     _start = NULL;
     _top = NULL;
     _end = NULL;
-    
+    while (header != NULL) {
+        mem_node* temp = header->next;
+        delete header;
+        header = temp;
+    }
 }
 
 MemoryPool* MemoryPool::get_instance() {
@@ -62,7 +71,6 @@ void* MemoryPool::allocate(size_t size) {
 /*
  * Get a memory fragmentation in the linked list.
  */
-/*
 void* MemoryPool::find_in_list(size_t size) {
     mem_node* temp = header->next;
     if (temp == NULL || size > temp->_size) {
@@ -108,7 +116,7 @@ void* MemoryPool::find_in_list(size_t size) {
                     temp->_size -= size;
                     
                     // TODO:this step can be made asynchronous.
-                    collect_node(temp);
+                    std::async(std::launch::async, wrapper, MemoryPool::get_instance(), temp);
                     
                     return res;
                 }
@@ -120,13 +128,14 @@ void* MemoryPool::find_in_list(size_t size) {
     }
     DEBUG("allocate failed");
     return NULL;
-}*/
+}
 
 /*
  * find in AVL tree
+ * well, use AVL tree to manage memory fragmentations seems not a good idea for me now.
  */
-void* find_in_tree(size_t size) {
-    
+void* MemoryPool::find_in_tree(size_t size) {
+    return NULL;
 }
 
 /*
@@ -137,6 +146,7 @@ void MemoryPool::collect(void* mem, size_t size) {
     mem_node* new_node = new mem_node((char*)mem, size);
     collect_node(new_node);    
 }
+
 
 /*
  * insert a memory node into the linked list.
