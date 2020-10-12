@@ -5,7 +5,9 @@ date: Wed 23 Sep 2020 09:20:09 PM CST
 
 ## 探讨 C++ 新标准
 
-> 《C++ Primer Plus》读书笔记
+> 《C++ Primer Plus》
+>
+> 《深入应用C++11》
 
 本章介绍C++11对C++所做的改进，包括以下主题：
 
@@ -127,7 +129,16 @@ C++11引入了Lambda匿名函数，语法格式为
 [](type x)->type{body;return expression;}
 ```
 
-### 包装器
+lambda表达式前面的这个[]实际叫做捕获列表，可以通过这个捕获列表捕获一定的变量在函数体内使用。
+
+-   []:不捕获任何变量
+-   [&]：按引用捕获外部作用域内的所有变量
+-   [=]：按值捕获外部作用域内的所有变量
+-   [=, &foo]：按值捕获其它变量，按引用捕获foo变量
+-   [bar]：只按值捕获bar变量
+-   [this]：捕获this指针，lambda表达式拥有和类成员函数相同的访问权限。
+
+### std::function与std::bind
 
 通过标准库中的`function`对象可以将可调用对象包装，返回一个统一的对象。
 
@@ -137,7 +148,37 @@ C++11引入了Lambda匿名函数，语法格式为
 std::function<func(type x,type y)> func_instance;
 ```
 
-随后便可以像函数一样调用。
+std::function最常见的一个应用是作为函数的参数类型限制，表示可以传入一个可调用的对象，不再想C语言那样只能传入一个函数指针。
+
+相比于std::function，std::bind是函数使用的另一种境界。
+
+std::bind作为一个函数，允许你提前给可调用对象绑定全部或部分参数。其返回类型即为std::function。
+
+用法示例：
+
+```c++
+void func(int a, int b) {
+    cout << "a: " << a << ", b:" << b << endl;
+}
+
+auto bind = std::bind(func, 1, 2);
+bind();
+```
+
+在经过绑定后，bind就变成了一个可调用对象，直接将其像函数一样调用就可以得到`func(1,2)`同等的效果。
+
+**绑定部分参数**
+
+前面说了，std::bind支持只绑定部分参数。实现方法就是通过占位符std::placeholders，std::placeholders是一个名称空间。
+
+比如说，如果我只想绑定参数b，参数a在调用时进行动态输入。
+
+```c++
+auto bind = std::bind(func, std::placeholders::_1, 1);
+bind(2);
+```
+
+显然std::placeholders后面的那个数字表明bind调用时输入的参数中相应位置，从1开始。所以这个数字显然不能超过你输入的参数的数量。
 
 ### 可变参数模板
 
@@ -176,5 +217,56 @@ void func(T t) {
 }
 ```
 
+### tupe元组
 
+tuple元组是一个固定大小的不同类型值的集合。
+
+先构造一个元组：
+
+```c++
+tuple<const char*, int> tp = make_tuple(sendPack, nSendSize);
+```
+
+这个元组实际就相当于结构体
+
+```c++
+struct tp {
+    const char* c;
+    int i;
+};
+```
+
+关于元组有一个很强大的函数，std::tie
+
+使用std::tie创建一个元组
+
+```c++
+auto tp = std::tie("hello", 1);
+//相当于创建一个std::tuple<string&, int&>
+```
+
+也可以使用std::tie来解构一个元组
+
+```c++
+string s;
+int d;
+std::tie(s, d) = tp;
+//s = "hello", d = 1
+```
+
+如果不想解某个位置的值，可以使用std::ignore来占位。
+
+获取元组值的方式：
+
+```c++
+int d = tp.get<2>();
+```
+
+创建元组的右值引用
+
+```c++
+std::forward_as_tuple("hello", 1);
+```
+
+还可以使用tuple_cat来连接多个元组。
 

@@ -41,3 +41,9 @@ protected:
 
 1.  每一个 class 产生一堆指向 virtual functions 的指针，放在表格中，作为虚表；
 2.  每一个 class object 被添加一个指向虚表的指针，称为vptr。每一个 class 所关联的 *type_info* object（用以支持 runtime type identification）也经由虚表被指出来，通常放在表格的第一个slot处。
+
+#### 加上继承 （Adding inheritance）
+
+C++支持单一继承，也支持多重继承。还支持虚继承，所谓虚继承，即不管父类被派生多少次，永远只会存在一个实体。
+
+在class内部存在一种类似于虚表的结构，通过一个指针指向一个base class table。缺点就是随着继承的增加会导致取地址的负担增加。
