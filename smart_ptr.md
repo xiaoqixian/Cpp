@@ -23,6 +23,69 @@ std::auto_ptr<std::string> ps(new std::string("str"));
 
 而`ps`的使用方式也和普通指针一样。
 
+#### shared_ptr的基本用法
+
+**初始化**
+
+可以通过构造函数、std::make_shared\<T\>辅助函数和reset方法来初始化shared_ptr。
+
+```c++
+std::shared_ptr<int> p(new int(1));
+std::shared_ptr<int> p2;
+p2.reset(new int(1));
+```
+
+**获取原始指针**
+
+可以通过get方法来获取原始指针。
+
+**指定删除器**
+
+```c++
+void deletePtr(int* p) {
+    delete p;
+}
+std::shared_ptr<int> p(new int(1), deletePtr);
+```
+
+也可以直接使用lambda表达式来制定删除器：
+
+```c++
+std::share_ptr<int> p(new int(1), [](int* p){delete p;});
+```
+
+当使用shared_ptr管理数组指针时，必须要指定删除器，因为默认的删除器不支持删除数组对象。
+
+```c++
+std::share_ptr<int> p(new int[10], [](int* p){delete[] p;});
+```
+
+**返回this指针的注意事项**
+
+我们在返回一个this指针的时候，如果希望能够通过shared_ptr进行包装，不要直接包装this指针后返回。即下面这种示例：
+
+```c++
+struct A {
+    shared_ptr<A> getSelf() {
+        return shared_ptr<A>(this);
+    }
+};
+shared_ptr<A> sp1(new A);
+shared_ptr<A> sp2 = sp1->getSelf();
+```
+
+这样的两个智能指针都是通过this裸指针构造的，所以两者毫无关系，会导致重复析构。正确的做法为继承std::enable_shared_from_this类，然后调用成员函数shared_from_this
+
+```c++
+class A: public std::enable_shared_from_this<A> {
+    std::shared_ptr<A> getSelf() {
+        return shared_from_this();
+    }
+};
+```
+
+#### unique
+
 #### 有关智能指针的注意事项
 
 现在一般不建议使用`auto_ptr`，编译使用了`auto_ptr`的代码编译器甚至会给出警告，为什么呢？

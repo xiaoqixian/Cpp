@@ -270,3 +270,5 @@ std::forward_as_tuple("hello", 1);
 
 还可以使用tuple_cat来连接多个元组。
 
+### 可变参数模板和type_traits的综合应用
+
