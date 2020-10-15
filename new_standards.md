@@ -207,7 +207,7 @@ void func() {
 template<typename T, typename... Args>
 void func(T t, Args... args) {
     //do something，t可以表示在当前递归里args的第一个参数
-    func(args); //在这里递归调用
+    func(args...); //在这里递归调用
 }
 
 //如果想要在只剩下一项参数时，还可以定义这样一个函数
@@ -216,6 +216,29 @@ void func(T t) {
     //do something
 }
 ```
+
+#### 逗号表达式展开参数包
+
+另一种展开参数包的方式是使用逗号表达式。所谓逗号表达式，对于一组逗号相隔的括号内，编译器会依次执行表达式，并将最后一个值作为变量的值。
+比如：
+```c++
+auto d = (count++, num = 1, count);
+```
+
+而利用逗号表达式，我们展开参数包的方式可以为
+```c++
+template <typename T>
+void printArg(T t) {
+    cout << t << endl;
+}
+
+template <typename... Args>
+void expand(Args... args) {
+    int arr[] = {(printArg(args), 0)...};
+}
+```
+
+最外面的花括号表示一个初始化列表，通过初始化列表来初始化一个变长数组，编译器会将args中的参数全部展开。这样就会依次执行printArg(args[i])（args[i]只是表示第i个参数，不是索引）后令arr[i] = 0，所以arr其实不重要，为了节省空间你可以令成char[]数组。
 
 ### tupe元组
 
