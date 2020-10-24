@@ -8,7 +8,7 @@
 #include <functional>
 // write an AOP framework with C++11
 
-// Tip: when decltype receives two args, it returns the second argument when the first one is compilable.
+// Tip: when declval receives two args, it returns the second argument when the first one is compilable.
 // This struct is to check if a class has the member function Before or After.
 #define HAS_MEMBER(member)\
 template<typename T, typename... Args> struct has_member_##member{\
@@ -51,10 +51,24 @@ struct Aspect {
 
     //to insert multiple aspects
     template <typename Head, typename... Tail>
-    void Invoke(Args&&... args, Head&& headAspect, Tail&&... tailAspect) {
+    typename std::enable_if<has_member_Before<Head, Args...>::value && has_member_After<Head, Args...>::value>::type
+    Invoke(Args&&... args, Head&& headAspect, Tail&&... tailAspect) {
         headAspect.Before(std::forward<Args>(args)...);
         Invoke(std::forward<Args>(args)..., std::forward<Tail>(tailAspect)...);
         headAspect.After(std::forward<Args>(args)...);
+    }
+    template <typename Head, typename... Tail>
+    typename std::enable_if<!has_member_Before<Head, Args...>::value && has_member_After<Head, Args...>::value>::type
+    Invoke(Args&&... args, Head&& headAspect, Tail&&... tailAspect) {
+        Invoke(std::forward<Args>(args)..., std::forward<Tail>(tailAspect)...);
+        headAspect.After(std::forward<Args>(args)...);
+    }
+
+    template <typename Head, typename... Tail>
+    typename std::enable_if<has_member_Before<Head, Args...>::value && !has_member_After<Head, Args...>::value>::type
+    Invoke(Args&&... args, Head&& headAspect, Tail&&... tailAspect) {
+        headAspect.Before(std::forward<Args>(args)...);
+        Invoke(std::forward<Args>(args)..., std::forward<Tail>(tailAspect)...);
     }
 
 private:
@@ -76,9 +90,10 @@ struct AA {
         cout << "AA Before" << endl;
     }
 
+    /*
     void After() {
         cout << "AA After" << endl;
-    }
+    }*/
 };
 
 struct BB {
@@ -86,6 +101,7 @@ struct BB {
         cout << "BB Before" << endl;
     }
 
+    
     void After() {
         cout << "BB After" << endl;
     }
