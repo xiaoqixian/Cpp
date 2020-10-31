@@ -1,3 +1,12 @@
+---
+author: lunar
+date: Sat 31 Oct 2020 09:18:11 PM CST
+location: Shanghai
+---
+
+### C++11写IoC框架
+
+```c++
 /**********************************************
   > File Name		: ioc.cpp
   > Author		    : lunar
@@ -129,3 +138,5 @@ int main() {
     pB->func();
     return 0;
 }
+
+```
