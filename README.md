@@ -1,5 +1,7 @@
 
 ## **Cpp is the best language**
+## Most of the coders use c++ for Competitative programming.
+
 
 ### C++ 读书笔记索引
 
@@ -40,3 +42,8 @@
 ### CMake 工具学习
 
 [基础篇](cmake/cmake.md)
+
+####  Reference on How to get Started with the Sport of Programming
+
+***   http://sportprogramming.blogspot.com/2014/07/getting-started-with-sport-of.html
+
