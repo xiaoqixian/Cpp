@@ -5,20 +5,15 @@
   > Created Time	: Sat 19 Sep 2020 04:36:04 PM CST
  **********************************************/
 
-#include <iostream>
-using namespace std;
+#include <stack>
+#include <stdio.h>
 
-class Base {
-public:
-
-};
-
-class Derived: public Base {
-public:
-
+struct TreeNode {
+    int val;
+    TreeNode* left, *right;
 };
 
 int main() {
-
-    return 0;
+    std::stack<TreeNode*> s;
+    printf("%d\n", s.top()->val);
 }
