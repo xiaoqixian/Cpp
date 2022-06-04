@@ -7,9 +7,16 @@
   > Copyright@ https://github.com/xiaoqixian
  **********************************************/
 
-struct S {int a; S(int a): a(a) {}};
+class A {
+public:
+    typedef int function_type(int);
+};
 
+int func(int) {
+    return -1;
+}
+
+#include <functional>
 int main() {
-    S s(1);
-    new (&s) S(1);
+    std::function<A::function_type> f = func;
 }

@@ -20,7 +20,11 @@ struct Any {
     Any(Any&& that): m_ptr(std::move(that.m_ptr)), m_tpIndex(that.m_tpIndex) {}
 
     // use std::decay to remove reference and cv modifier and get the original type
-    template <typename U, class = typename std::enable_if<!std::is_same<typename std::decay<U>::type, Any>::value, U>::type> Any(U&& value): m_ptr(new Derived<typename std::decay<U>::type>(std::forward<U>(value))), m_tpIndex(std::type_index(typeid(typename std::decay<U>::type))) {std::cout << "call rvalue constructor" << std::endl;}
+    // `typename =` equals to `typename T =`, as T is not used, so it can be omitted.
+    template <typename U, typename = typename std::enable_if<!std::is_same<typename std::decay<U>::type, Any>::value, U>::type> 
+    Any(U&& value): m_ptr(new Derived<typename std::decay<U>::type>(std::forward<U>(value))), m_tpIndex(std::type_index(typeid(typename std::decay<U>::type))) {
+        std::cout << "call rvalue constructor" << std::endl;
+    }
 
     bool isNull() const {
         return !bool(m_ptr);
@@ -66,7 +70,7 @@ private:
         Derived(U&& value): m_value(std::forward<U>(value)) {}
 
         BasePtr clone() const {
-            return BasePtr(new Derived<T>(m_value));
+            return BasePtr(new Derived<T>(this->m_value));
         }
 
         T m_value;
