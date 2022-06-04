@@ -6,17 +6,15 @@
   > Location        : Shanghai
   > Copyright@ https://github.com/xiaoqixian
  **********************************************/
-
-class A {
-public:
-    typedef int function_type(int);
-};
-
-int func(int) {
-    return -1;
-}
-
-#include <functional>
+#include <iostream>
+#include <algorithm>
+#include <vector>
 int main() {
-    std::function<A::function_type> f = func;
+    std::vector<int> v = {1,2,3,4,5};
+    std::vector<int> v1(v.size());
+
+    auto it = std::copy_if(v.begin(), v.end(), v1.begin(), [](int i){return i%2!=0;});
+    v1.resize(std::distance(v1.begin(), it));
+
+    std::cout << "v1 size: " << v1.size() << std::endl;
 }
