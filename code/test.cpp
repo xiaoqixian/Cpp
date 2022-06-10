@@ -6,15 +6,17 @@
   > Location        : Shanghai
   > Copyright@ https://github.com/xiaoqixian
  **********************************************/
-#include <iostream>
-#include <algorithm>
-#include <vector>
+#include <type_traits>
+template <typename Func>
+typename std::result_of<Func()>::type wrapper(Func&& func) {
+    auto res = func();
+    return res;
+}
+
+int func() {
+}
+
 int main() {
-    std::vector<int> v = {1,2,3,4,5};
-    std::vector<int> v1(v.size());
-
-    auto it = std::copy_if(v.begin(), v.end(), v1.begin(), [](int i){return i%2!=0;});
-    v1.resize(std::distance(v1.begin(), it));
-
-    std::cout << "v1 size: " << v1.size() << std::endl;
+    auto res = wrapper(func);
+    
 }

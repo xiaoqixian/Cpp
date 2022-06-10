@@ -15,12 +15,12 @@
  */
 
 struct Any {
-    Any(void): m_tpIndex(std::type_index(typeid(void))) {std::cout << "call default constructor" << std::endl;}
+    Any(void): m_tpIndex(std::type_index(typeid(void))) {}
     Any(Any& that): m_ptr(that.clone()), m_tpIndex(that.m_tpIndex) {}
     Any(Any&& that): m_ptr(std::move(that.m_ptr)), m_tpIndex(that.m_tpIndex) {}
 
     // use std::decay to remove reference and cv modifier and get the original type
-    template <typename U, class = typename std::enable_if<!std::is_same<typename std::decay<U>::type, Any>::value, U>::type> Any(U&& value): m_ptr(new Derived<typename std::decay<U>::type>(std::forward<U>(value))), m_tpIndex(std::type_index(typeid(typename std::decay<U>::type))) {std::cout << "call rvalue constructor" << std::endl;}
+    template <typename U, class = typename std::enable_if<!std::is_same<typename std::decay<U>::type, Any>::value, U>::type> Any(U&& value): m_ptr(new Derived<typename std::decay<U>::type>(std::forward<U>(value))), m_tpIndex(std::type_index(typeid(typename std::decay<U>::type))) {}
 
     bool isNull() const {
         return !bool(m_ptr);
@@ -42,7 +42,6 @@ struct Any {
     }
 
     Any& operator=(const Any& a) {
-        std::cout << "call operator = " << std::endl;
         if (m_ptr == a.m_ptr) {
             return *this;
         }
