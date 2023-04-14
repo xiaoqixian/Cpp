@@ -6,19 +6,28 @@
   > Location        : Shanghai
   > Copyright@ https://github.com/xiaoqixian
  **********************************************/
-
 #include <stdio.h>
-
-void func(void* a) {
-    if (a == NULL) {
-        printf("null");
-    } else {
-        printf("not null");
-    }
-}
-
 int main() {
-    int a = -1;
-    unsigned short us = a;
-    printf("%d\n", us);
+    int sum = 0;
+    char n[100];
+    scanf("%s", &n);
+    while (n) {
+        sum += (n % 10);
+        n /= 10;
+    }
+    printf("sum = %d\n", sum);
+    
+    char* pinyin[10] = {"ling", "yi", "er", "san", "si", "wu", "liu", "qi", "ba", "jiu"};
+    int index[100] = {0}, count = 0;
+    while (sum) {
+        index[count++] = (sum % 10);
+        sum /= 10;
+    }
+    
+    while (count--) {
+        printf("%s ", pinyin[index[count]]);
+    }
+    printf("\n");
+    return 0;
 }
+

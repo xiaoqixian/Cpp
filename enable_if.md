@@ -16,10 +16,6 @@ template <class T>
 struct enable_if<true, T> {typedef T type;};
 ```
 
-
-
-
-
 ```c++
 /**********************************************
   > File Name		: test30.cpp
