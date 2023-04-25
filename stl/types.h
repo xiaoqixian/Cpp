@@ -1,16 +1,14 @@
 /**********************************************
-  > File Name		: find.cpp
+  > File Name		: types.h
   > Author		    : lunar
   > Email			: lunar_ubuntu@qq.com
-  > Created Time	: Mon Feb 13 17:21:23 2023
+  > Created Time	: Mon Apr 17 21:03:24 2023
   > Location        : Shanghai
   > Copyright@ https://github.com/xiaoqixian
  **********************************************/
+#ifndef _TYPES_H
+#define _TYPES_H
 
-#include <string>
-#include <vector>
-using namespace std;
+typedef unsigned long size_t;
 
-int main() {
-    vec
-}
+#endif /* _TYPES_H*/
