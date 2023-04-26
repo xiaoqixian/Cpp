@@ -83,6 +83,12 @@ public:
     T const& get() const {
         return value;
     }
+
+    int swap(tuple_leaf& t) 
+        noexcept(evo::is_nothrow_swappable<tuple_leaf>::value) {
+        evo::swap(*this, t);
+        return 0;
+    }
 };
 
 
@@ -124,8 +130,17 @@ struct tuple_impl<tuple_indices<indices...>, Ts...>: public tuple_leaf<indices, 
     tuple_impl(Tuple&& t)
         noexcept(evo::all<evo::is_nothrow_constructible<Ts, typename tuple_element<indices, typename make_tuple_types<Tuple>::type>::type>::value...>::value) 
         : tuple_leaf<indices, Ts>(evo::forward<typename tuple_element<indices, typename make_tuple_types<Tuple>::type>::type>(get<indices>(t)))... {}
+
+    tuple_impl(tuple_impl const&) = default;
+    tuple_impl(tuple_impl&&) = default;
+
+    void swap(tuple_impl& t)
+        noexcept(evo::all<evo::is_nothrow_swappable<Ts>::value...>::value) {
+        swallow(tuple_leaf<indices, Ts>::swap(static_cast<tuple_leaf<indices, Ts>&>(t))...);
+    }
 };
 
+//just expand a pack and not doing anything
 template <typename... T>
 constexpr void swallow(T...) {}
 

@@ -9,18 +9,18 @@
 #ifndef _MOVE_H
 #define _MOVE_H
 
-#include "../type_traits"
+#include "../type_traits.h"
 
 namespace evo {
 
 /*
- * move语义擦除参数的引用类型，统一返回右值引用
+ * move erase the reference type, return rvalue reference.
  */
-    template <typename T>
-    inline typename evo::remove_reference<T>::type&& move(T tp) {
-        typedef typename evo::remove_reference<T>::type&& r_reference;
-        return static_cast<r_reference>(tp);
-    }
+template <typename T>
+inline typename evo::remove_reference<T>::type&& move(T tp) {
+    typedef typename evo::remove_reference<T>::type&& r_reference;
+    return static_cast<r_reference>(tp);
+}
 }
 
 #endif /* _MOVE_H*/

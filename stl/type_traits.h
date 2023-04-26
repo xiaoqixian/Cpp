@@ -242,12 +242,24 @@ struct is_nothrow_move_assignable: public bool_constant<is_nothrow_constructible
                                    typename add_rvalue_reference<T>::type
                                    >::value> {};
 
+
+//swappable
+template <typename T>
+struct is_swappable;
+template <typename T>
+struct is_nothrow_swappable;
+
 //swap
 template <typename T>
 using swap_result_t = typename enable_if<is_move_constructible<T>::value && is_move_assignable<T>::value>::type;
 
+//implementation in utility/swap.h
 template <typename T>
 inline swap_result_t<T> swap(T& x, T& y) noexcept(is_nothrow_move_constructible<T>::value && is_nothrow_move_assignable<T>::value);
+
+template <typename T, size_t N>
+inline typename enable_if<is_swappable<T>::value>::type swap(T (&a)[N], T(&b)[N])
+    noexcept(is_nothrow_swappable<T>::value);
 
 //swappable with
 struct nat {
@@ -256,11 +268,33 @@ struct nat {
     nat& operator=(nat const&) = delete;
     ~nat() = delete;
 };
-template <typename T, typename U, bool = !is_void<T>::value && !is_void<U>::value>
+
+template <typename T, typename U = T, bool = !is_void<T>::value && !is_void<U>::value>
 struct swappable_with {
     template <typename L, typename R>
-    static decltype() test_swap(int);
+    static decltype(swap(declval<L>(), declval<R>())) test_swap(int);
+    template <typename, typename>
+    static nat test_swap(long);
+
+    typedef decltype(test_swap<T, U>(0)) swap1;
+    typedef decltype(test_swap<U, T>(0)) swap2;
+
+    static const bool value = is_not_same<swap1, nat>::value && is_not_same<swap2, nat>::value;
 };
+
+template <typename T, typename U>
+struct swappable_with<T, U, false>: false_type {};
+
+//nothrow_swappable_with
+template <typename T, typename U = T, bool swappable = swappable_with<T, U>::value>
+struct nothrow_swappable_with {
+    static const bool value = 
+        noexcept(swap(declval<T>(), declval<U>()))
+    &&  noexcept(swap(declval<U>(), declval<T>()));
+};
+
+template <typename T, typename U>
+struct nothrow_swappable_with<T, U, false>: false_type {};
 }
 
 
