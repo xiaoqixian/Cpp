@@ -12,6 +12,7 @@
 #include "types.h"
 #include "type_traits.h"
 #include "utility/forward.h"
+#include "utility/move.h"
 #include "memory/allocator_arg_t.h"
 
 //tuple declaration
@@ -26,6 +27,20 @@ class tuple_element;
 //an empty struct to catch indices
 template <size_t...>
 struct tuple_indices {};
+
+template <typename>
+struct make_tuple_indices_impl;
+
+template <size_t... indices>
+struct make_tuple_indices_impl<evo::integer_sequence<indices...>> {
+    typedef tuple_indices<indices...> type;
+};
+
+//make_tuple_indices
+template <size_t N>
+struct make_tuple_indices {
+    typedef typename make_tuple_indices_impl<typename evo::make_integer_sequence<N>::type>::type type;
+};
 
 //tuple_types
 template <typename...>
@@ -160,9 +175,12 @@ private:
     typedef tuple_impl<evo::make_integer_sequence<sizeof...(Ts)>, Ts...> Base;
     Base base;
 
+public:
     //tuple() constructor
+    //requires all types to be implicitly default constructible
     template <template <typename...> typename IsImplDefault = evo::is_implicitly_default_constructible, evo::enable_if<evo::And<IsImplDefault<Ts>...>::value, int> = 0>
-    tuple() {}
+    tuple() 
+        noexcept(evo::And<evo::is_nothrow_default_constructible<Ts>...>::value) {}
 
     //explicit constructor
     //make sure all types are default constructible but not implicitly default constructible
@@ -170,12 +188,166 @@ private:
         template <typename...> typename IsImplDefault = evo::is_implicitly_default_constructible, 
         template <typename...> typename IsDefault = evo::is_default_constructible, 
         evo::enable_if<evo::And<IsDefault<Ts>..., evo::Not<evo::And<IsImplDefault<Ts>...>>>::value, int> = 0> //explicit check
-    explicit tuple() {}
+    explicit tuple()
+        noexcept(evo::And<evo::is_nothrow_default_constructible<Ts>...>::value) {}
 
-    //memberwise assignment
-    template <typename... Us, evo::enable_if<evo::And<evo::bool_constant<sizeof...(Ts) == sizeof...(Us)>, evo::is_assignable<Ts&, Us>...>::value>>
-    tuple& operator=(tuple<Us...>&& t) {
-        
+    //tuple(Ts&...) constructor
+    template <template <typename...> class And = evo::And, evo::enable_if<evo::And<
+        evo::bool_constant<sizeof...(Ts) >= 1>,
+        evo::is_copy_constructible<Ts>...,
+        evo::is_convertible<const Ts&, Ts>...
+        >::value, int> = 0> 
+    tuple(const Ts&... t)
+    noexcept(evo::And<evo::is_nothrow_copy_constructible<Ts>...>::value)
+        : base(typename make_tuple_indices<sizeof...(Ts)>::type(),
+                typename make_tuple_types<tuple<Ts...>>::type(),
+                typename make_tuple_indices<0>::type(),
+                typename make_tuple_types<tuple<>>::type(),
+                t...) {}
+
+    //tuple(U&&...) constructor
+    //as U may be a tuple, so we have differ it from inner types.
+    template <typename...> struct is_tuple: evo::false_type {};
+    template <typename U> struct is_tuple<U>: evo::is_same<typename evo::remove_cv_ref<U>::type, tuple> {};
+
+    template <typename... Us, evo::enable_if<
+        evo::And<
+            evo::bool_constant<sizeof...(Us) == sizeof...(Ts)>,
+            evo::And<
+                evo::bool_constant<sizeof...(Ts) >= 1>,
+                evo::Not<is_tuple<Us...>>,
+                evo::is_constructible<Ts, Us>...
+            >,
+            evo::is_convertible<Ts, Us>...
+        >::value, int> = 0>
+    tuple(Us&&... u) noexcept(evo::And<evo::is_nothrow_constructible<Ts, Us>...>::value)
+    : base(typename make_tuple_indices<sizeof...(Us)>::type(),
+            typename make_tuple_types<tuple<Us...>>::type(),
+            typename make_tuple_indices<0>::type(),
+            typename make_tuple_types<tuple<>>::type(),
+            evo::forward<Us>(u)...) {}
+
+    tuple(const tuple&) = default;
+    tuple(tuple&&) = default;
+
+    template <typename... Us>
+    struct EnableCopyFromOtherTuple: evo::And<
+        evo::Not<evo::is_same<tuple<Ts...>, tuple<Us...>>>,
+        evo::Or<
+            evo::bool_constant<sizeof...(Ts) != 1>,
+            evo::And<
+                evo::Not<evo::is_convertible<const tuple<Us>&, Ts>>...,
+                evo::Not<evo::is_constructible<Ts, const tuple<Us>&>>...
+            >
+        >,
+        evo::is_constructible<Ts, const Us&>...
+    > {};
+
+    //tuple(tuple const&) constructor
+    //if all const Us& is convertible to Ts
+    template <typename... Us, evo::enable_if<
+        evo::And<
+            evo::bool_constant<sizeof...(Us) == sizeof...(Ts)>,
+            EnableCopyFromOtherTuple<Us...>,
+            evo::is_convertible<const Us&, Ts>...
+        >::value
+    , int> = 0>
+    tuple(const tuple<Us...>& t) 
+        noexcept(evo::And<evo::is_nothrow_constructible<Ts, const Us&>...>::value): base(t) {}
+
+    //tuple(tuple const&) constructor
+    //if not all const Us& is convertible to Ts
+    template <typename... Us, evo::enable_if<
+        evo::And<
+            evo::bool_constant<sizeof...(Us) == sizeof...(Ts)>,
+            EnableCopyFromOtherTuple<Us...>,
+            evo::Not<evo::And<evo::is_convertible<const Us&, Ts>...>>
+        >::value
+    , int> = 0>
+    explicit tuple(const tuple<Us...>& t)
+        noexcept(evo::And<evo::is_nothrow_constructible<Ts, const Us&>...>::value): base(t) {}
+
+    template <typename... Us>
+    struct EnableMoveFromOtherTuple: evo::And<
+        evo::Not<evo::is_same<tuple<Ts...>, tuple<Us...>>>,
+        evo::Or<
+            evo::bool_constant<sizeof...(Ts) != 1>,
+            evo::And<
+                evo::Not<evo::is_convertible<tuple<Us>, Ts>>...,
+                evo::Not<evo::is_constructible<Ts, tuple<Us>>>...
+            >
+        >,
+        evo::is_constructible<Ts, Us>...
+    > {};
+
+    //tuple(tuple&&) constructor
+    template <typename... Us, evo::enable_if<
+        evo::And<
+            evo::bool_constant<sizeof...(Us) == sizeof...(Ts)>,
+            EnableMoveFromOtherTuple<Us...>,
+            evo::is_convertible<Us, Ts>...
+        >::value
+    , int> = 0>
+    tuple(tuple<Us...>&& t)
+        noexcept(evo::And<evo::is_nothrow_constructible<Ts, Us>...>::value): base(evo::move(t)) {}
+
+    //explicit tuple(tuple&&) constructor
+    template <typename... Us, evo::enable_if<
+        evo::And<
+            evo::bool_constant<sizeof...(Us) == sizeof...(Ts)>,
+            EnableMoveFromOtherTuple<Us...>,
+            evo::Not<evo::And<evo::is_convertible<Us, Ts>...>>
+        >::value
+    , int> = 0>
+    explicit tuple(tuple<Us...>&& t)
+        noexcept(evo::And<evo::is_nothrow_constructible<Ts, Us>...>::value): base(evo::move(t)) {}
+
+    //[tuple.assign]
+    //memberwise copy assign
+    //can't use SFINAE, so use evo::nat if failed.
+    tuple& operator=(evo::conditional<evo::And<evo::is_copy_assignable<Ts>...>::value, tuple, evo::nat> const& t) 
+        noexcept(evo::And<evo::is_nothrow_copy_assignable<Ts>...>::value) {
+        memberwise_copy_assign(*this, t, typename make_tuple_indices<sizeof...(Ts)>::type());
+        return *this;
+    }
+
+    //memberwise move assign
+    tuple& operator=(evo::conditional<evo::And<evo::is_move_assignable<Ts>...>::value, tuple, evo::nat> const& t)
+        noexcept(evo::And<evo::is_nothrow_move_assignable<Ts>...>::value) {
+        memberwise_forward_assign(*this, t, typename make_tuple_indices<sizeof...(Ts)>::type());
+        return *this;
+    }
+
+    //memberwise copy assign
+    //but with different types
+    template <typename... Us, evo::enable_if<
+        evo::And<
+            evo::bool_constant<sizeof...(Ts) == sizeof...(Us)>,
+            evo::Not<evo::is_same<tuple<Ts...>, tuple<Us...>>>,
+            evo::is_assignable<Ts&, Us const&>...
+        >::value, int> = 0>
+    tuple& operator=(tuple<Us...> const& t)
+    noexcept(evo::And<evo::is_nothrow_assignable<Ts&, Us const&>...>::value) {
+        memberwise_copy_assign(*this, t, typename make_tuple_indices<sizeof...(Ts)>::type());
+        return *this;
+    }
+
+    //memberwise move assign
+    //but with different types
+    template <typename... Us, evo::enable_if<
+        evo::And<
+            evo::bool_constant<sizeof...(Ts) == sizeof...(Us)>,
+            evo::is_assignable<Ts&, Us>...
+        >::value, int> = 0>
+    tuple& operator=(tuple<Us...>&& t)
+    noexcept(evo::And<evo::is_nothrow_assignable<Ts&, Us>...>::value) {
+        memberwise_forward_assign(*this, t, typename make_tuple_indices<sizeof...(Ts)>::type());
+        return *this;
+    }
+
+    //[tuple.swap]
+    void swap(tuple& t) noexcept(evo::all<evo::is_nothrow_swappable<Ts>::value...>::value) {
+        base.swap(t.base);
     }
 };
 

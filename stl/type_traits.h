@@ -33,11 +33,30 @@ struct integral_constant {
     constexpr value_type operator ()() const {return value;}
 };
 
+//enable_if
+template <bool, typename T = void>
+struct enable_if {};
+template <typename T>
+struct enable_if<true, T> {typedef T type;};
+
 //if two types is the same
 template <typename T, typename U>
 struct is_same: false_type {};
 template <typename T>
 struct is_same<T, T>: true_type {};
+
+//and helper
+//like multiple enable_if
+template <typename...>
+using expand_to_true = true_type;
+//every Pred::value has to be true.
+template <typename... Pred>
+expand_to_true<enable_if<Pred::value>...> and_helper();
+template <typename...>
+false_type and_helper();
+
+template <typename... Pred>
+using And = decltype(and_helper<Pred...>());
 
 //is_not_same
 template <typename T, typename U>
@@ -46,6 +65,10 @@ struct is_not_same: bool_constant<!is_same<T, U>::value> {};
 //Not
 template <typename Pred>
 struct Not: bool_constant<!Pred::value> {};
+
+//Or
+template <typename... Pred>
+struct Or: evo::Not<evo::And<evo::Not<Pred>...>> {};
 
 //is_referenceable
 struct is_referenceable_impl {
@@ -97,7 +120,7 @@ struct remove_cv<const volatile T> {typedef T type;};
 //remove CV specifier and reference
 template <typename T>
 struct remove_cv_ref {
-    typedef typename remove_cv<remove_reference<T>>::type type;
+    typedef typename remove_cv<typename remove_reference<T>::type>::type type;
 };
 
 //conditional
@@ -106,28 +129,9 @@ struct conditional {typedef If type;};
 template <typename If, typename Then>
 struct conditional<false, If, Then> {typedef Then type;};
 
-//enable_if
-template <bool, typename T = void>
-struct enable_if {};
-template <typename T>
-struct enable_if<true, T> {typedef T type;};
-
 //add const
 template <typename T>
 struct add_const {typedef const T type;};
-
-//and helper
-//like multiple enable_if
-template <typename...>
-using expand_to_true = true_type;
-//every Pred::value has to be true.
-template <typename... Pred>
-expand_to_true<enable_if<Pred::value>...> and_helper();
-template <typename...>
-false_type and_helper();
-
-template <typename... Pred>
-using And = decltype(and_helper<Pred...>());
 
 //all
 //true_type if all Pred is true
@@ -142,8 +146,11 @@ template <typename T>
 struct is_lvalue_reference: bool_constant<__is_lvalue_reference(T)> {};
 
 //make_integer_sequence
-template <size_t...>
-struct integer_sequence {using type = integer_sequence;};
+template <size_t... values>
+struct integer_sequence {
+    using type = integer_sequence;
+    //using to_tuple_indices = evo::tuple_indices<values...>;
+};
 
 template <typename, typename>
 struct concat_integer_sequence;
@@ -178,6 +185,10 @@ struct is_constructible: false_type {};
 template <typename T, typename... Args>
 struct is_constructible<decltype(T(evo::declval<Args>()...)), T, Args...>: true_type {};
 
+//is_nothrow_constructible
+template <typename T, typename... Args>
+struct is_nothrow_constructible: public bool_constant<__is_nothrow_constructible(T, Args...)> {};
+
 //is_default_constructible
 template <typename T, typename... Args>
 struct is_default_constructible: public is_constructible<T, Args...> {};
@@ -186,9 +197,13 @@ struct is_default_constructible: public is_constructible<T, Args...> {};
 template <typename T>
 struct is_move_constructible: public is_constructible<T, typename add_rvalue_reference<T>::type> {};
 
-//is_nothrow_constructible
-template <typename T, typename... Args>
-struct is_nothrow_constructible: public bool_constant<__is_nothrow_constructible(T, Args...)> {};
+//is_copy_constructible
+template <typename T>
+struct is_copy_constructible: public is_constructible<T, typename add_lvalue_reference<typename add_const<T>::type>::type> {};
+
+//is_nothrow_copy_constructible
+template <typename T>
+struct is_nothrow_copy_constructible: public is_nothrow_constructible<T, typename add_lvalue_reference<typename add_const<T>::type>::type> {};
 
 //is_nothrow_default_constructible
 template <typename T>
@@ -242,6 +257,18 @@ struct is_nothrow_move_assignable: public bool_constant<is_nothrow_constructible
                                    typename add_rvalue_reference<T>::type
                                    >::value> {};
 
+//is_copy_assignable
+template <typename T>
+struct is_copy_assignable: is_assignable<
+                           typename add_lvalue_reference<T>::type, 
+                           typename add_lvalue_reference<T>::type> {};
+
+//is_nothrow_copy_assignable
+template <typename T>
+struct is_nothrow_copy_assignable: bool_constant<is_nothrow_constructible<
+                                   typename add_lvalue_reference<T>::type,
+                                   typename add_lvalue_reference<T>::type
+                                   >::value> {};
 
 //swappable
 template <typename T>
